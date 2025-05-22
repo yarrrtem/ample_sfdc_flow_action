@@ -1,4 +1,7 @@
 public class AmpleFlowEnrichSequence {
+    // Custom exception for this class
+    public class AmpleFlowException extends Exception {}
+
     // DTO for Flow input
     public class AmpRequest {
         @InvocableVariable(required=true)
@@ -42,7 +45,7 @@ public class AmpleFlowEnrichSequence {
             try {
                 // Fetch Contact
                 Contact contact = [SELECT Id, Email, FirstName, LastName FROM Contact WHERE Id = :req.contactId LIMIT 1];
-                if (contact.Email == null) throw new Exception('Contact email is required');
+                if (contact.Email == null) throw new AmpleFlowException('Contact email is required');
 
                 // Enrich via Amplemarket
                 EnrichData enrichData = findPerson(contact.Email, req.apiKey);
@@ -98,7 +101,7 @@ public class AmpleFlowEnrichSequence {
         if (res.getStatusCode() == 200) {
             return (EnrichData)JSON.deserialize(res.getBody(), EnrichData.class);
         }
-        throw new Exception('Enrichment failed with status: ' + res.getStatusCode() + ' - ' + res.getBody());
+        throw new AmpleFlowException('Enrichment failed with status: ' + res.getStatusCode() + ' - ' + res.getBody());
     }
 
     // --- Service: Sequence ---
