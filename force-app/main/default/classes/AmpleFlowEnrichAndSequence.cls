@@ -1,4 +1,4 @@
-public class AmpleFlowEnrichSequence {
+public class AmpleFlowEnrichAndSequence {
     // Custom exception for this class
     public class AmpleFlowException extends Exception {}
 
