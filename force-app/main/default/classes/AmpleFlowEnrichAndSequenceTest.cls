@@ -22,8 +22,8 @@ private class AmpleFlowEnrichAndSequenceTest {
         // Create request
         AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
         req.email = 'test@example.com';
-        req.amplemarketApiKey = 'test-api-key';
-        req.sequenceId = 'test-sequence-id';
+        req.amplemarket_api_key = 'test-api-key';
+        req.sequence_id = 'test-sequence-id';
 
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
@@ -46,8 +46,8 @@ private class AmpleFlowEnrichAndSequenceTest {
         // Create request
         AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
         req.email = 'test@example.com';
-        req.amplemarketApiKey = 'test-api-key';
-        req.sequenceId = 'test-sequence-id';
+        req.amplemarket_api_key = 'test-api-key';
+        req.sequence_id = 'test-sequence-id';
 
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
@@ -64,8 +64,8 @@ private class AmpleFlowEnrichAndSequenceTest {
         // Prepare test request
         AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
         req.email = null;
-        req.amplemarketApiKey = 'test-api-key';
-        req.sequenceId = 'test-sequence-id';
+        req.amplemarket_api_key = 'test-api-key';
+        req.sequence_id = 'test-sequence-id';
 
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
@@ -82,8 +82,8 @@ private class AmpleFlowEnrichAndSequenceTest {
         // Prepare test request
         AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
         req.email = 'test@example.com';
-        req.amplemarketApiKey = 'invalid-api-key';
-        req.sequenceId = 'test-sequence-id';
+        req.amplemarket_api_key = 'invalid-api-key';
+        req.sequence_id = 'test-sequence-id';
 
         // Mock HTTP callout to simulate enrichment failure
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
@@ -107,8 +107,8 @@ private class AmpleFlowEnrichAndSequenceTest {
         // Prepare test request with override flags
         AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
         req.email = 'test@example.com';
-        req.amplemarketApiKey = 'test-api-key';
-        req.sequenceId = 'test-sequence-id';
+        req.amplemarket_api_key = 'test-api-key';
+        req.sequence_id = 'test-sequence-id';
         req.ignore_recently_contacted = true;
         req.ignore_exclusion_list = true;
         req.ignore_duplicate_draft = true;
@@ -134,8 +134,8 @@ private class AmpleFlowEnrichAndSequenceTest {
         // Prepare test request
         AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
         req.email = 'test@example.com';
-        req.amplemarketApiKey = 'test-api-key';
-        req.sequenceId = 'test-sequence-id';
+        req.amplemarket_api_key = 'test-api-key';
+        req.sequence_id = 'test-sequence-id';
 
         // Mock HTTP callout with missing company data
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
@@ -163,8 +163,8 @@ private class AmpleFlowEnrichAndSequenceTest {
         // Create request with mailbox email
         AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
         req.email = 'test@example.com';
-        req.amplemarketApiKey = 'test-api-key';
-        req.sequenceId = 'test-sequence-id';
+        req.amplemarket_api_key = 'test-api-key';
+        req.sequence_id = 'test-sequence-id';
         req.sequence_mailbox_email = 'sales@example.com';
 
         Test.startTest();

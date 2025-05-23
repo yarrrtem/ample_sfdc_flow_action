@@ -5,9 +5,9 @@ public class AmpleFlowEnrichAndSequence {
         @InvocableVariable(required=true)
         public String email;
         @InvocableVariable(required=true)
-        public String amplemarketApiKey;
+        public String amplemarket_api_key;
         @InvocableVariable(required=true)
-        public String sequenceId;
+        public String sequence_id;
         @InvocableVariable(required=false)
         public Boolean ignore_recently_contacted = false;
         @InvocableVariable(required=false)
@@ -84,7 +84,7 @@ public class AmpleFlowEnrichAndSequence {
                 if (req.email == null) throw new AmpleFlowException('Email is required');
 
                 // Enrich via Amplemarket
-                EnrichData enrichData = findPerson(req.email, req.amplemarketApiKey);
+                EnrichData enrichData = findPerson(req.email, req.amplemarket_api_key);
 
                 // Extract company information
                 String companyName = '';
@@ -131,7 +131,7 @@ public class AmpleFlowEnrichAndSequence {
 
                 // Add to sequence
                 HttpResponse seqRes = addToSequence(
-                    req.sequenceId, req.email, enrichData.linkedin_url, data, overrides, req.amplemarketApiKey, req.sequence_mailbox_email
+                    req.sequence_id, req.email, enrichData.linkedin_url, data, overrides, req.amplemarket_api_key, req.sequence_mailbox_email
                 );
 
                 // Parse sequence response
@@ -172,13 +172,13 @@ public class AmpleFlowEnrichAndSequence {
 
     // --- Service: Sequence ---
     private static HttpResponse addToSequence(
-        String sequenceId, String email, String linkedinUrl, Map<String, String> data,
-        Map<String, Boolean> overrides, String apiKey, String mailboxEmail
+        String sequence_id, String email, String linkedinUrl, Map<String, String> data,
+        Map<String, Boolean> overrides, String api_key, String mailbox_email
     ) {
         HttpRequest req = new HttpRequest();
-        req.setEndpoint('https://api.amplemarket.com/sequences/' + sequenceId + '/leads');
+        req.setEndpoint('https://api.amplemarket.com/sequences/' + sequence_id + '/leads');
         req.setMethod('POST');
-        req.setHeader('Authorization', 'Bearer ' + apiKey);
+        req.setHeader('Authorization', 'Bearer ' + api_key);
         req.setHeader('Content-Type', 'application/json');
 
         Map<String, Object> lead = new Map<String, Object>{
@@ -191,10 +191,10 @@ public class AmpleFlowEnrichAndSequence {
         Map<String, Object> body = new Map<String, Object>{ 'leads' => new List<Object>{ lead } };
 
         // Add settings if mailbox email is provided
-        if (String.isNotBlank(mailboxEmail)) {
+        if (String.isNotBlank(mailbox_email)) {
             Map<String, Object> settings = new Map<String, Object>{
                 'leads_distribution' => 'custom_mailboxes',
-                'mailboxes' => new List<String>{ mailboxEmail }
+                'mailboxes' => new List<String>{ mailbox_email }
             };
             body.put('settings', settings);
         }
