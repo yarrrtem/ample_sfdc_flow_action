@@ -5,7 +5,7 @@ private class AmpleFlowEnrichAndSequenceTest {
         // Create test contact
         Contact testContact = new Contact(
             FirstName = 'Test',
-            LastName = 'User',
+            LastName = 'Contact',
             Email = 'test@example.com'
         );
         insert testContact;
@@ -13,31 +13,64 @@ private class AmpleFlowEnrichAndSequenceTest {
 
     @isTest
     static void testSuccessfulEnrichAndSequence() {
+        // Setup mock responses
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
+            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","experiences":[{"company_name":"Test Company"}]}',
+            '{"total":1,"total_added_to_sequence":1,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
+        ));
+
         // Get test contact
         Contact testContact = [SELECT Id FROM Contact WHERE Email = 'test@example.com' LIMIT 1];
-        
-        // Prepare test request
+
+        // Create request
         AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
         req.contactId = testContact.Id;
         req.apiKey = 'test-api-key';
         req.sequenceId = 'test-sequence-id';
-        
-        // Mock HTTP callouts
-        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
-        
+
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
         Test.stopTest();
-        
-        // Verify results
-        System.assertEquals(1, responses.size(), 'Should return one response');
-        System.assertEquals(true, responses[0].success, 'Should be successful');
-        System.assertEquals('Successfully enriched and added to sequence.', responses[0].message);
-        
+
+        // Verify response
+        System.assertEquals(1, responses.size(), 'Should have one response');
+        System.assertEquals(true, responses[0].success, 'Operation should be successful');
+        System.assertEquals('Successfully enriched and added to sequence.', responses[0].message, 'Should have success message');
+
         // Verify task was created
-        List<Task> tasks = [SELECT Id, Subject, Description FROM Task WHERE WhoId = :testContact.Id];
-        System.assertEquals(1, tasks.size(), 'Should create one task');
-        System.assert(tasks[0].Subject.contains('Added to Amplemarket sequence'), 'Task subject should mention sequence');
+        List<Task> tasks = [SELECT Id FROM Task WHERE WhoId = :testContact.Id];
+        System.assertEquals(1, tasks.size(), 'Should have created one task');
+    }
+
+    @isTest
+    static void testFailedSequence() {
+        // Setup mock responses
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
+            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","experiences":[{"company_name":"Test Company"}]}',
+            '{"total":1,"total_added_to_sequence":0,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
+        ));
+
+        // Get test contact
+        Contact testContact = [SELECT Id FROM Contact WHERE Email = 'test@example.com' LIMIT 1];
+
+        // Create request
+        AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
+        req.contactId = testContact.Id;
+        req.apiKey = 'test-api-key';
+        req.sequenceId = 'test-sequence-id';
+
+        Test.startTest();
+        List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
+        Test.stopTest();
+
+        // Verify response
+        System.assertEquals(1, responses.size(), 'Should have one response');
+        System.assertEquals(false, responses[0].success, 'Operation should not be successful');
+        System.assertEquals('Lead was not added to sequence. Enrichment succeeded but sequencing failed.', responses[0].message, 'Should have failure message');
+
+        // Verify no task was created
+        List<Task> tasks = [SELECT Id FROM Task WHERE WhoId = :testContact.Id];
+        System.assertEquals(0, tasks.size(), 'Should not have created any tasks');
     }
 
     @isTest
@@ -77,7 +110,11 @@ private class AmpleFlowEnrichAndSequenceTest {
         req.sequenceId = 'test-sequence-id';
         
         // Mock HTTP callout to simulate enrichment failure
-        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(true));
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
+            '{"error": "Bad Request"}',
+            '{"total":0,"total_added_to_sequence":0,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}',
+            true
+        ));
         
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
@@ -105,7 +142,10 @@ private class AmpleFlowEnrichAndSequenceTest {
         req.ignore_duplicate_active = true;
         
         // Mock HTTP callouts
-        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
+            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","experiences":[{"company_name":"Test Company"}]}',
+            '{"total":1,"total_added_to_sequence":1,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
+        ));
         
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
@@ -128,7 +168,10 @@ private class AmpleFlowEnrichAndSequenceTest {
         req.sequenceId = 'test-sequence-id';
         
         // Mock HTTP callout with empty experiences
-        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(false, true));
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
+            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","experiences":[]}',
+            '{"total":1,"total_added_to_sequence":1,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
+        ));
         
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
@@ -141,43 +184,37 @@ private class AmpleFlowEnrichAndSequenceTest {
 
     // Mock HTTP Response Generator
     private class MockHttpResponseGenerator implements HttpCalloutMock {
+        private String enrichResponse;
+        private String sequenceResponse;
         private Boolean shouldFail;
-        private Boolean emptyExperiences;
-        
-        public MockHttpResponseGenerator() {
+        private Integer callCount = 0;
+
+        public MockHttpResponseGenerator(String enrichResponse, String sequenceResponse) {
+            this.enrichResponse = enrichResponse;
+            this.sequenceResponse = sequenceResponse;
             this.shouldFail = false;
-            this.emptyExperiences = false;
         }
-        
-        public MockHttpResponseGenerator(Boolean shouldFail) {
+
+        public MockHttpResponseGenerator(String enrichResponse, String sequenceResponse, Boolean shouldFail) {
+            this.enrichResponse = enrichResponse;
+            this.sequenceResponse = sequenceResponse;
             this.shouldFail = shouldFail;
-            this.emptyExperiences = false;
         }
-        
-        public MockHttpResponseGenerator(Boolean shouldFail, Boolean emptyExperiences) {
-            this.shouldFail = shouldFail;
-            this.emptyExperiences = emptyExperiences;
-        }
-        
+
         public HTTPResponse respond(HTTPRequest req) {
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
             
-            if (shouldFail) {
-                res.setStatusCode(400);
-                res.setBody('{"error": "Bad Request"}');
-            } else if (req.getEndpoint().contains('/people/find')) {
-                // Mock enrichment response
+            // First call is enrichment, second is sequence
+            if (callCount == 0) {
+                res.setBody(enrichResponse);
+                res.setStatusCode(shouldFail ? 400 : 200);
+            } else {
+                res.setBody(sequenceResponse);
                 res.setStatusCode(200);
-                String experiences = emptyExperiences ? '[]' : 
-                    '[{"company_name": "Test Company", "title": "Developer", "start_date": "2020-01", "end_date": "2021-01"}]';
-                res.setBody('{"first_name": "Test", "last_name": "User", "linkedin_url": "https://linkedin.com/in/test", "title": "Developer", "experiences": ' + experiences + '}');
-            } else if (req.getEndpoint().contains('/sequences/')) {
-                // Mock sequence response
-                res.setStatusCode(200);
-                res.setBody('{"success": true}');
             }
             
+            callCount++;
             return res;
         }
     }

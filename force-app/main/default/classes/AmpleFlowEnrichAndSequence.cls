@@ -45,6 +45,19 @@ public class AmpleFlowEnrichAndSequence {
         public List<Experience> experiences;
     }
 
+    // Sequence API response structure
+    public class SequenceResponse {
+        public Integer total;
+        public Integer total_added_to_sequence;
+        public List<String> duplicate_emails;
+        public List<String> duplicate_linkedin_urls;
+        public List<String> in_exclusion_list_and_skipped;
+        public List<String> recently_contacted_and_skipped;
+        public List<String> already_in_sequence_and_skipped;
+        public List<String> in_other_draft_sequences_and_skipped;
+        public List<String> in_other_active_sequences_and_skipped;
+    }
+
     @InvocableMethod(label='Amplemarket: Enrich & Add to Sequence')
     public static List<AmpResponse> run(List<AmpRequest> requests) {
         List<AmpResponse> responses = new List<AmpResponse>();
@@ -90,22 +103,31 @@ public class AmpleFlowEnrichAndSequence {
                     req.sequenceId, contact.Email, enrichData.linkedin_url, data, overrides, req.apiKey
                 );
 
-                // Create Task (WhoId for Contact)
-                Task t = new Task(
-                    Subject = 'Added to Amplemarket sequence ' + req.sequenceId,
-                    WhoId = contact.Id,
-                    Status = 'Completed',
-                    Description = 'Enriched & Sequenced a lead on Amplemarket with the following info:' +
-                        '\nfirst_name: ' + enrichData.first_name +
-                        '\nlast_name: ' + enrichData.last_name +
-                        '\ntitle: ' + enrichData.title +
-                        '\ncompany_name: ' + companyName +
-                        '\nlinkedin_url: ' + enrichData.linkedin_url
-                );
-                insert t;
-
-                response.success = true;
-                response.message = 'Successfully enriched and added to sequence.';
+                // Parse sequence response
+                SequenceResponse seqResponse = (SequenceResponse)JSON.deserialize(seqRes.getBody(), SequenceResponse.class);
+                
+                // Only create task if lead was successfully added to sequence
+                if (seqResponse.total_added_to_sequence == 1) {
+                    // Create Task (WhoId for Contact)
+                    Task t = new Task(
+                        Subject = 'Added to Amplemarket sequence ' + req.sequenceId,
+                        WhoId = contact.Id,
+                        Status = 'Completed',
+                        Description = 'Enriched & Sequenced a lead on Amplemarket with the following info:' +
+                            '\nfirst_name: ' + enrichData.first_name +
+                            '\nlast_name: ' + enrichData.last_name +
+                            '\ntitle: ' + enrichData.title +
+                            '\ncompany_name: ' + companyName +
+                            '\nlinkedin_url: ' + enrichData.linkedin_url
+                    );
+                    insert t;
+                    
+                    response.success = true;
+                    response.message = 'Successfully enriched and added to sequence.';
+                } else {
+                    response.success = false;
+                    response.message = 'Lead was not added to sequence. Enrichment succeeded but sequencing failed.';
+                }
             } catch (Exception e) {
                 response.success = false;
                 response.message = e.getMessage();
@@ -149,6 +171,10 @@ public class AmpleFlowEnrichAndSequence {
         Map<String, Object> body = new Map<String, Object>{ 'leads' => new List<Object>{ lead } };
         req.setBody(JSON.serialize(body));
         Http http = new Http();
-        return http.send(req);
+        HttpResponse res = http.send(req);
+        if (res.getStatusCode() != 200) {
+            throw new AmpleFlowException('Sequence API call failed with status: ' + res.getStatusCode() + ' - ' + res.getBody());
+        }
+        return res;
     }
 } 
