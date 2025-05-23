@@ -34,7 +34,13 @@ public class AmpleFlowEnrichAndSequence {
         public String last_name;
         public String linkedin_url;
         public String title;
-        public String company_name;
+        public List<Experience> experiences;
+        public class Experience {
+            public String company_name;
+            public String title;
+            public String start_date;
+            public String end_date;
+        }
     }
 
     @InvocableMethod(label='Amplemarket: Enrich & Add to Sequence')
@@ -50,12 +56,18 @@ public class AmpleFlowEnrichAndSequence {
                 // Enrich via Amplemarket
                 EnrichData enrichData = findPerson(contact.Email, req.apiKey);
 
+                // Extract company_name from first experience if available
+                String companyName = '';
+                if (enrichData.experiences != null && !enrichData.experiences.isEmpty()) {
+                    companyName = enrichData.experiences[0].company_name;
+                }
+
                 // Prepare data for sequence
                 Map<String, String> data = new Map<String, String>{
                     'first_name' => enrichData.first_name,
                     'last_name' => enrichData.last_name,
                     'title' => enrichData.title,
-                    'company_name' => enrichData.company_name
+                    'company_name' => companyName
                 };
 
                 // Ensure override flags default to false if null
@@ -85,7 +97,7 @@ public class AmpleFlowEnrichAndSequence {
                         '\nfirst_name: ' + enrichData.first_name +
                         '\nlast_name: ' + enrichData.last_name +
                         '\ntitle: ' + enrichData.title +
-                        '\ncompany_name: ' + enrichData.company_name +
+                        '\ncompany_name: ' + companyName +
                         '\nlinkedin_url: ' + enrichData.linkedin_url
                 );
                 insert t;
