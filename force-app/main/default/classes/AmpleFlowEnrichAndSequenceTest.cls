@@ -15,7 +15,7 @@ private class AmpleFlowEnrichAndSequenceTest {
     static void testSuccessfulEnrichAndSequence() {
         // Setup mock responses
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
-            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","experiences":[{"company_name":"Test Company"}]}',
+            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","company":{"name":"Test Company","website":"https://test.com","size":"51-200","industry":"Technology","location_details":{"city":"San Francisco","state":"CA","country":"United States"}}}',
             '{"total":1,"total_added_to_sequence":1,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
         ));
 
@@ -39,7 +39,7 @@ private class AmpleFlowEnrichAndSequenceTest {
     static void testFailedSequence() {
         // Setup mock responses
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
-            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","experiences":[{"company_name":"Test Company"}]}',
+            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","company":{"name":"Test Company","website":"https://test.com","size":"51-200","industry":"Technology","location_details":{"city":"San Francisco","state":"CA","country":"United States"}}}',
             '{"total":1,"total_added_to_sequence":0,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
         ));
 
@@ -116,7 +116,7 @@ private class AmpleFlowEnrichAndSequenceTest {
         
         // Mock HTTP callouts
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
-            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","experiences":[{"company_name":"Test Company"}]}',
+            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","company":{"name":"Test Company","website":"https://test.com","size":"51-200","industry":"Technology","location_details":{"city":"San Francisco","state":"CA","country":"United States"}}}',
             '{"total":1,"total_added_to_sequence":1,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
         ));
         
@@ -130,16 +130,16 @@ private class AmpleFlowEnrichAndSequenceTest {
     }
 
     @isTest
-    static void testEmptyExperiences() {
+    static void testMissingCompanyData() {
         // Prepare test request
         AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
         req.email = 'test@example.com';
         req.amplemarketApiKey = 'test-api-key';
         req.sequenceId = 'test-sequence-id';
         
-        // Mock HTTP callout with empty experiences
+        // Mock HTTP callout with missing company data
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
-            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","experiences":[]}',
+            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title"}',
             '{"total":1,"total_added_to_sequence":1,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
         ));
         
@@ -149,7 +149,7 @@ private class AmpleFlowEnrichAndSequenceTest {
         
         // Verify results
         System.assertEquals(1, responses.size(), 'Should return one response');
-        System.assertEquals(true, responses[0].success, 'Should be successful');
+        System.assertEquals(true, responses[0].success, 'Should be successful even with missing company data');
     }
 
     // Mock HTTP Response Generator

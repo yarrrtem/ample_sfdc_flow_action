@@ -32,15 +32,23 @@ public class AmpleFlowEnrichAndSequence {
         public String last_name;
         public String linkedin_url;
         public String title;
-        public List<Experience> experiences;
+        public Company company;
     }
 
-    // Experience class
-    public class Experience {
-        public String company_name;
-        public String title;
-        public String start_date;
-        public String end_date;
+    // Company class
+    public class Company {
+        public String name;
+        public String website;
+        public String size;
+        public String industry;
+        public LocationDetails location_details;
+    }
+
+    // Location details class
+    public class LocationDetails {
+        public String city;
+        public String state;
+        public String country;
     }
 
     // Sequence API response structure
@@ -76,10 +84,26 @@ public class AmpleFlowEnrichAndSequence {
                 // Enrich via Amplemarket
                 EnrichData enrichData = findPerson(req.email, req.amplemarketApiKey);
 
-                // Extract company_name from first experience if available
+                // Extract company information
                 String companyName = '';
-                if (enrichData.experiences != null && !enrichData.experiences.isEmpty()) {
-                    companyName = enrichData.experiences[0].company_name;
+                String companyWebsite = '';
+                String companySize = '';
+                String industry = '';
+                String city = '';
+                String state = '';
+                String country = '';
+
+                if (enrichData.company != null) {
+                    companyName = enrichData.company.name;
+                    companyWebsite = enrichData.company.website;
+                    companySize = enrichData.company.size;
+                    industry = enrichData.company.industry;
+                    
+                    if (enrichData.company.location_details != null) {
+                        city = enrichData.company.location_details.city;
+                        state = enrichData.company.location_details.state;
+                        country = enrichData.company.location_details.country;
+                    }
                 }
 
                 // Prepare data for sequence
@@ -87,7 +111,13 @@ public class AmpleFlowEnrichAndSequence {
                     'first_name' => enrichData.first_name,
                     'last_name' => enrichData.last_name,
                     'title' => enrichData.title,
-                    'company_name' => companyName
+                    'company_name' => companyName,
+                    'company_website' => companyWebsite,
+                    'company_size' => companySize,
+                    'industry' => industry,
+                    'city' => city,
+                    'state' => state,
+                    'country' => country
                 };
                 // Build override map with default false values for nulls
                 Map<String, Boolean> overrides = new Map<String, Boolean>{
