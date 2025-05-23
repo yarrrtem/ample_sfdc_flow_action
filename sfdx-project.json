@@ -6,7 +6,15 @@
       "path": "force-app",
       "default": true,
       "package": "AmpleFlowEnrichAndSequence",
-      "versionDescription": "Invocable Flow Action: enrich contact & push to Amplemarket sequence"
+      "versionDescription": ""
+    },
+    {
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "path": "force-app",
+      "default": false,
+      "package": "AmplemarketEnrichAndSequenceFlow",
+      "versionDescription": ""
     }
   ],
   "name": "ample_sfdc_flow_action",
@@ -14,6 +22,7 @@
   "sfdcLoginUrl": "https://login.salesforce.com",
   "sourceApiVersion": "62.0",
   "packageAliases": {
-    "AmpleFlowEnrichAndSequence": "0HoQy0000000hY1KAI"
+    "AmpleFlowEnrichAndSequence": "0HoQy0000000hZdKAI",
+    "AmplemarketEnrichAndSequenceFlow": "0HoQy0000000hbFKAQ"
   }
 }

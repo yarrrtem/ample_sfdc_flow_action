@@ -57,11 +57,18 @@ public class AmpleFlowEnrichAndSequence {
                     'title' => enrichData.title,
                     'company_name' => enrichData.company_name
                 };
+
+                // Ensure override flags default to false if null
+                Boolean ignore_recently_contacted = req.ignore_recently_contacted == null ? false : req.ignore_recently_contacted;
+                Boolean ignore_exclusion_list = req.ignore_exclusion_list == null ? false : req.ignore_exclusion_list;
+                Boolean ignore_duplicate_draft = req.ignore_duplicate_draft == null ? false : req.ignore_duplicate_draft;
+                Boolean ignore_duplicate_active = req.ignore_duplicate_active == null ? false : req.ignore_duplicate_active;
+
                 Map<String, Boolean> overrides = new Map<String, Boolean>{
-                    'ignore_recently_contacted' => req.ignore_recently_contacted,
-                    'ignore_exclusion_list' => req.ignore_exclusion_list,
-                    'ignore_duplicate_leads_in_other_draft_sequences' => req.ignore_duplicate_draft,
-                    'ignore_duplicate_leads_in_other_active_sequences' => req.ignore_duplicate_active
+                    'ignore_recently_contacted' => ignore_recently_contacted,
+                    'ignore_exclusion_list' => ignore_exclusion_list,
+                    'ignore_duplicate_leads_in_other_draft_sequences' => ignore_duplicate_draft,
+                    'ignore_duplicate_leads_in_other_active_sequences' => ignore_duplicate_active
                 };
 
                 // Add to sequence
@@ -74,7 +81,12 @@ public class AmpleFlowEnrichAndSequence {
                     Subject = 'Added to Amplemarket sequence ' + req.sequenceId,
                     WhoId = contact.Id,
                     Status = 'Completed',
-                    Description = 'Enrich status: Success | Sequence status: ' + String.valueOf(seqRes.getStatusCode())
+                    Description = 'Enrich status: Success | Sequence status: ' + String.valueOf(seqRes.getStatusCode()) +
+                        '\nfirst_name: ' + enrichData.first_name +
+                        '\nlast_name: ' + enrichData.last_name +
+                        '\ntitle: ' + enrichData.title +
+                        '\ncompany_name: ' + enrichData.company_name +
+                        '\nlinkedin_url: ' + enrichData.linkedin_url
                 );
                 insert t;
 
