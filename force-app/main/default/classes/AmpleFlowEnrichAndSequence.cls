@@ -1,5 +1,5 @@
 public class AmpleFlowEnrichAndSequence {
-    
+
     // DTO for Flow input
     public class AmpRequest {
         @InvocableVariable(required=true)
@@ -9,13 +9,15 @@ public class AmpleFlowEnrichAndSequence {
         @InvocableVariable(required=true)
         public String sequenceId;
         @InvocableVariable(required=false)
-        public Boolean ignore_recently_contacted = true;
+        public Boolean ignore_recently_contacted = false;
         @InvocableVariable(required=false)
-        public Boolean ignore_exclusion_list = true;
+        public Boolean ignore_exclusion_list = false;
         @InvocableVariable(required=false)
-        public Boolean ignore_duplicate_draft = true;
+        public Boolean ignore_duplicate_draft = false;
         @InvocableVariable(required=false)
-        public Boolean ignore_duplicate_active = true;
+        public Boolean ignore_duplicate_active = false;
+        @InvocableVariable(required=false)
+        public String sequence_mailbox_email;
     }
 
     // DTO for Flow output
@@ -68,7 +70,7 @@ public class AmpleFlowEnrichAndSequence {
         public String email;
         public String linkedin_url;
     }
-    
+
     // Custom exception for this class
     public class AmpleFlowException extends Exception {}
 
@@ -98,7 +100,7 @@ public class AmpleFlowEnrichAndSequence {
                     companyWebsite = enrichData.company.website;
                     companySize = enrichData.company.size;
                     industry = enrichData.company.industry;
-                    
+
                     if (enrichData.company.location_details != null) {
                         city = enrichData.company.location_details.city;
                         state = enrichData.company.location_details.state;
@@ -119,22 +121,22 @@ public class AmpleFlowEnrichAndSequence {
                     'state' => state,
                     'country' => country
                 };
-                // Build override map with default false values for nulls
+                // Build override map: treat included-but-empty (null) as true, not included as false
                 Map<String, Boolean> overrides = new Map<String, Boolean>{
-                    'ignore_recently_contacted' => Boolean.valueOf(req.ignore_recently_contacted),
-                    'ignore_exclusion_list' => Boolean.valueOf(req.ignore_exclusion_list), 
-                    'ignore_duplicate_leads_in_other_draft_sequences' => Boolean.valueOf(req.ignore_duplicate_draft),
-                    'ignore_duplicate_leads_in_other_active_sequences' => Boolean.valueOf(req.ignore_duplicate_active)
+                    'ignore_recently_contacted' => req.ignore_recently_contacted == false ? false : true,
+                    'ignore_exclusion_list' => req.ignore_exclusion_list == false ? false : true,
+                    'ignore_duplicate_leads_in_other_draft_sequences' => req.ignore_duplicate_draft == false ? false : true,
+                    'ignore_duplicate_leads_in_other_active_sequences' => req.ignore_duplicate_active == false ? false : true
                 };
 
                 // Add to sequence
                 HttpResponse seqRes = addToSequence(
-                    req.sequenceId, req.email, enrichData.linkedin_url, data, overrides, req.amplemarketApiKey
+                    req.sequenceId, req.email, enrichData.linkedin_url, data, overrides, req.amplemarketApiKey, req.sequence_mailbox_email
                 );
 
                 // Parse sequence response
                 SequenceResponseWrapper seqResponse = (SequenceResponseWrapper)JSON.deserialize(seqRes.getBody(), SequenceResponseWrapper.class);
-                
+
                 // Handle null values safely
                 Integer totalAdded = seqResponse.total_added_to_sequence != null ? seqResponse.total_added_to_sequence : 0;
                 if (totalAdded == 1) {
@@ -171,20 +173,32 @@ public class AmpleFlowEnrichAndSequence {
     // --- Service: Sequence ---
     private static HttpResponse addToSequence(
         String sequenceId, String email, String linkedinUrl, Map<String, String> data,
-        Map<String, Boolean> overrides, String apiKey
+        Map<String, Boolean> overrides, String apiKey, String mailboxEmail
     ) {
         HttpRequest req = new HttpRequest();
         req.setEndpoint('https://api.amplemarket.com/sequences/' + sequenceId + '/leads');
         req.setMethod('POST');
         req.setHeader('Authorization', 'Bearer ' + apiKey);
         req.setHeader('Content-Type', 'application/json');
+
         Map<String, Object> lead = new Map<String, Object>{
             'email' => email,
             'linkedin_url' => linkedinUrl,
             'data' => data,
             'overrides' => overrides
         };
+
         Map<String, Object> body = new Map<String, Object>{ 'leads' => new List<Object>{ lead } };
+
+        // Add settings if mailbox email is provided
+        if (String.isNotBlank(mailboxEmail)) {
+            Map<String, Object> settings = new Map<String, Object>{
+                'leads_distribution' => 'custom_mailboxes',
+                'mailboxes' => new List<String>{ mailboxEmail }
+            };
+            body.put('settings', settings);
+        }
+
         req.setBody(JSON.serialize(body));
         Http http = new Http();
         HttpResponse res = http.send(req);
@@ -193,4 +207,4 @@ public class AmpleFlowEnrichAndSequence {
         }
         return res;
     }
-} 
+}

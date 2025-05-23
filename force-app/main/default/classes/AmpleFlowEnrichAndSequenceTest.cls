@@ -66,11 +66,11 @@ private class AmpleFlowEnrichAndSequenceTest {
         req.email = null;
         req.amplemarketApiKey = 'test-api-key';
         req.sequenceId = 'test-sequence-id';
-        
+
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
         Test.stopTest();
-        
+
         // Verify results
         System.assertEquals(1, responses.size(), 'Should return one response');
         System.assertEquals(false, responses[0].success, 'Should fail');
@@ -84,18 +84,18 @@ private class AmpleFlowEnrichAndSequenceTest {
         req.email = 'test@example.com';
         req.amplemarketApiKey = 'invalid-api-key';
         req.sequenceId = 'test-sequence-id';
-        
+
         // Mock HTTP callout to simulate enrichment failure
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
             '{"error": "Bad Request"}',
             '{"total":0,"total_added_to_sequence":0,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}',
             true
         ));
-        
+
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
         Test.stopTest();
-        
+
         // Verify results
         System.assertEquals(1, responses.size(), 'Should return one response');
         System.assertEquals(false, responses[0].success, 'Should fail');
@@ -113,17 +113,17 @@ private class AmpleFlowEnrichAndSequenceTest {
         req.ignore_exclusion_list = true;
         req.ignore_duplicate_draft = true;
         req.ignore_duplicate_active = true;
-        
+
         // Mock HTTP callouts
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
             '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","company":{"name":"Test Company","website":"https://test.com","size":"51-200","industry":"Technology","location_details":{"city":"San Francisco","state":"CA","country":"United States"}}}',
             '{"total":1,"total_added_to_sequence":1,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
         ));
-        
+
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
         Test.stopTest();
-        
+
         // Verify results
         System.assertEquals(1, responses.size(), 'Should return one response');
         System.assertEquals(true, responses[0].success, 'Should be successful');
@@ -136,20 +136,50 @@ private class AmpleFlowEnrichAndSequenceTest {
         req.email = 'test@example.com';
         req.amplemarketApiKey = 'test-api-key';
         req.sequenceId = 'test-sequence-id';
-        
+
         // Mock HTTP callout with missing company data
         Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
             '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title"}',
             '{"total":1,"total_added_to_sequence":1,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
         ));
-        
+
         Test.startTest();
         List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
         Test.stopTest();
-        
+
         // Verify results
         System.assertEquals(1, responses.size(), 'Should return one response');
         System.assertEquals(true, responses[0].success, 'Should be successful even with missing company data');
+    }
+
+    @isTest
+    static void testSequenceWithMailboxEmail() {
+        // Setup mock responses
+        Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator(
+            '{"first_name":"Test","last_name":"Contact","linkedin_url":"https://linkedin.com/in/test","title":"Test Title","company":{"name":"Test Company","website":"https://test.com","size":"51-200","industry":"Technology","location_details":{"city":"San Francisco","state":"CA","country":"United States"}}}',
+            '{"total":1,"total_added_to_sequence":1,"duplicate_emails":[],"duplicate_linkedin_urls":[],"in_exclusion_list_and_skipped":[],"recently_contacted_and_skipped":[],"already_in_sequence_and_skipped":[],"in_other_draft_sequences_and_skipped":[],"in_other_active_sequences_and_skipped":[]}'
+        ));
+
+        // Create request with mailbox email
+        AmpleFlowEnrichAndSequence.AmpRequest req = new AmpleFlowEnrichAndSequence.AmpRequest();
+        req.email = 'test@example.com';
+        req.amplemarketApiKey = 'test-api-key';
+        req.sequenceId = 'test-sequence-id';
+        req.sequence_mailbox_email = 'sales@example.com';
+
+        Test.startTest();
+        List<AmpleFlowEnrichAndSequence.AmpResponse> responses = AmpleFlowEnrichAndSequence.run(new List<AmpleFlowEnrichAndSequence.AmpRequest>{req});
+        Test.stopTest();
+
+        // Verify response
+        System.assertEquals(1, responses.size(), 'Should have one response');
+        System.assertEquals(true, responses[0].success, 'Operation should be successful');
+
+        // Verify that the request body contained the settings object
+        MockHttpResponseGenerator mock = (MockHttpResponseGenerator)Test.getMock(HttpCalloutMock.class);
+        System.assert(mock.lastRequestBody.contains('"settings"'), 'Request should contain settings object');
+        System.assert(mock.lastRequestBody.contains('"leads_distribution":"custom_mailboxes"'), 'Request should contain leads_distribution setting');
+        System.assert(mock.lastRequestBody.contains('"mailboxes":["sales@example.com"]'), 'Request should contain correct mailbox email');
     }
 
     // Mock HTTP Response Generator
@@ -158,6 +188,7 @@ private class AmpleFlowEnrichAndSequenceTest {
         private String sequenceResponse;
         private Boolean shouldFail;
         private Integer callCount = 0;
+        public String lastRequestBody;
 
         public MockHttpResponseGenerator(String enrichResponse, String sequenceResponse) {
             this.enrichResponse = enrichResponse;
@@ -174,18 +205,19 @@ private class AmpleFlowEnrichAndSequenceTest {
         public HTTPResponse respond(HTTPRequest req) {
             HttpResponse res = new HttpResponse();
             res.setHeader('Content-Type', 'application/json');
-            
+
             // First call is enrichment, second is sequence
             if (callCount == 0) {
                 res.setBody(enrichResponse);
                 res.setStatusCode(shouldFail ? 400 : 200);
             } else {
+                lastRequestBody = req.getBody();
                 res.setBody(sequenceResponse);
                 res.setStatusCode(200);
             }
-            
+
             callCount++;
             return res;
         }
     }
-} 
+}
