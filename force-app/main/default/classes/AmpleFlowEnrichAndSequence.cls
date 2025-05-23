@@ -26,14 +26,6 @@ public class AmpleFlowEnrichAndSequence {
         public String message;
     }
 
-    // Experience class (moved outside EnrichData)
-    public class Experience {
-        public String company_name;
-        public String title;
-        public String start_date;
-        public String end_date;
-    }
-
     // Enrichment data structure
     public class EnrichData {
         public String first_name;
@@ -41,6 +33,14 @@ public class AmpleFlowEnrichAndSequence {
         public String linkedin_url;
         public String title;
         public List<Experience> experiences;
+    }
+
+    // Experience class
+    public class Experience {
+        public String company_name;
+        public String title;
+        public String start_date;
+        public String end_date;
     }
 
     // Sequence API response structure
@@ -89,18 +89,12 @@ public class AmpleFlowEnrichAndSequence {
                     'title' => enrichData.title,
                     'company_name' => companyName
                 };
-
-                // Ensure override flags default to false if null
-                Boolean ignore_recently_contacted = req.ignore_recently_contacted == null ? false : req.ignore_recently_contacted;
-                Boolean ignore_exclusion_list = req.ignore_exclusion_list == null ? false : req.ignore_exclusion_list;
-                Boolean ignore_duplicate_draft = req.ignore_duplicate_draft == null ? false : req.ignore_duplicate_draft;
-                Boolean ignore_duplicate_active = req.ignore_duplicate_active == null ? false : req.ignore_duplicate_active;
-
+                // Build override map with default false values for nulls
                 Map<String, Boolean> overrides = new Map<String, Boolean>{
-                    'ignore_recently_contacted' => ignore_recently_contacted,
-                    'ignore_exclusion_list' => ignore_exclusion_list,
-                    'ignore_duplicate_leads_in_other_draft_sequences' => ignore_duplicate_draft,
-                    'ignore_duplicate_leads_in_other_active_sequences' => ignore_duplicate_active
+                    'ignore_recently_contacted' => Boolean.valueOf(req.ignore_recently_contacted),
+                    'ignore_exclusion_list' => Boolean.valueOf(req.ignore_exclusion_list), 
+                    'ignore_duplicate_leads_in_other_draft_sequences' => Boolean.valueOf(req.ignore_duplicate_draft),
+                    'ignore_duplicate_leads_in_other_active_sequences' => Boolean.valueOf(req.ignore_duplicate_active)
                 };
 
                 // Add to sequence
@@ -108,22 +102,17 @@ public class AmpleFlowEnrichAndSequence {
                     req.sequenceId, req.email, enrichData.linkedin_url, data, overrides, req.amplemarketApiKey
                 );
 
-                try {
-                    // Parse sequence response
-                    SequenceResponseWrapper seqResponse = (SequenceResponseWrapper)JSON.deserialize(seqRes.getBody(), SequenceResponseWrapper.class);
-                    
-                    // Handle null values safely
-                    Integer totalAdded = seqResponse.total_added_to_sequence != null ? seqResponse.total_added_to_sequence : 0;
-                    if (totalAdded == 1) {
-                        response.success = true;
-                        response.message = 'Successfully enriched and added to sequence.';
-                    } else {
-                        response.success = false;
-                        response.message = 'Lead was not added to sequence. Enrichment succeeded but sequencing failed.';
-                    }
-                } catch (Exception e) {
+                // Parse sequence response
+                SequenceResponseWrapper seqResponse = (SequenceResponseWrapper)JSON.deserialize(seqRes.getBody(), SequenceResponseWrapper.class);
+                
+                // Handle null values safely
+                Integer totalAdded = seqResponse.total_added_to_sequence != null ? seqResponse.total_added_to_sequence : 0;
+                if (totalAdded == 1) {
+                    response.success = true;
+                    response.message = 'Successfully enriched and added to sequence.';
+                } else {
                     response.success = false;
-                    response.message = 'Error parsing sequence response: ' + e.getMessage() + '\nResponse body: ' + seqRes.getBody();
+                    response.message = 'Lead was not added to sequence. Enrichment succeeded but sequencing failed.';
                 }
             } catch (Exception e) {
                 response.success = false;

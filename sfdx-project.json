@@ -14,5 +14,7 @@
   "sfdcLoginUrl": "https://login.salesforce.com",
   "sourceApiVersion": "62.0",
   "packageAliases": {
+    "AmpleFlowEnrichAndSequence": "0HoQy0000000hZdKAI",
+    "AmpleFlowEnrichAndSequence@0.2.0-1": "04tQy0000009FflIAE"
   }
 }
