@@ -1,12 +1,12 @@
 {
   "packageDirectories": [
     {
-      "versionName": "ver 0.1",
-      "versionNumber": "0.1.0.NEXT",
+      "versionName": "ver 0.2",
+      "versionNumber": "0.2.0.NEXT",
       "path": "force-app",
       "default": true,
       "package": "AmpleFlowEnrichAndSequence",
-      "versionDescription": ""
+      "versionDescription": "relies on direct email input, instead of contactId"
     }
   ],
   "name": "ample_sfdc_flow_action",

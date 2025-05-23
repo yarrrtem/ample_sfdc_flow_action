@@ -1,21 +1,11 @@
 public class AmpleFlowEnrichAndSequence {
-    // Custom exception for this class
-    public class AmpleFlowException extends Exception {}
-
-    // Experience class (moved outside EnrichData)
-    public class Experience {
-        public String company_name;
-        public String title;
-        public String start_date;
-        public String end_date;
-    }
-
+    
     // DTO for Flow input
     public class AmpRequest {
         @InvocableVariable(required=true)
-        public Id contactId;
+        public String email;
         @InvocableVariable(required=true)
-        public String apiKey;
+        public String amplemarketApiKey;
         @InvocableVariable(required=true)
         public String sequenceId;
         @InvocableVariable(required=false)
@@ -36,6 +26,14 @@ public class AmpleFlowEnrichAndSequence {
         public String message;
     }
 
+    // Experience class (moved outside EnrichData)
+    public class Experience {
+        public String company_name;
+        public String title;
+        public String start_date;
+        public String end_date;
+    }
+
     // Enrichment data structure
     public class EnrichData {
         public String first_name;
@@ -46,17 +44,26 @@ public class AmpleFlowEnrichAndSequence {
     }
 
     // Sequence API response structure
-    public class SequenceResponse {
+    public class SequenceResponseWrapper {
         public Integer total;
         public Integer total_added_to_sequence;
         public List<String> duplicate_emails;
         public List<String> duplicate_linkedin_urls;
-        public List<String> in_exclusion_list_and_skipped;
-        public List<String> recently_contacted_and_skipped;
-        public List<String> already_in_sequence_and_skipped;
-        public List<String> in_other_draft_sequences_and_skipped;
-        public List<String> in_other_active_sequences_and_skipped;
+        public List<SkippedLead> in_exclusion_list_and_skipped;
+        public List<SkippedLead> recently_contacted_and_skipped;
+        public List<SkippedLead> already_in_sequence_and_skipped;
+        public List<SkippedLead> in_other_draft_sequences_and_skipped;
+        public List<SkippedLead> in_other_active_sequences_and_skipped;
     }
+
+    public class SkippedLead {
+        public String email;
+        public String linkedin_url;
+    }
+    
+    // Custom exception for this class
+    public class AmpleFlowException extends Exception {}
+
 
     @InvocableMethod(label='Amplemarket: Enrich & Add to Sequence')
     public static List<AmpResponse> run(List<AmpRequest> requests) {
@@ -64,12 +71,10 @@ public class AmpleFlowEnrichAndSequence {
         for (AmpRequest req : requests) {
             AmpResponse response = new AmpResponse();
             try {
-                // Fetch Contact
-                Contact contact = [SELECT Id, Email, FirstName, LastName FROM Contact WHERE Id = :req.contactId LIMIT 1];
-                if (contact.Email == null) throw new AmpleFlowException('Contact email is required');
+                if (req.email == null) throw new AmpleFlowException('Email is required');
 
                 // Enrich via Amplemarket
-                EnrichData enrichData = findPerson(contact.Email, req.apiKey);
+                EnrichData enrichData = findPerson(req.email, req.amplemarketApiKey);
 
                 // Extract company_name from first experience if available
                 String companyName = '';
@@ -100,33 +105,25 @@ public class AmpleFlowEnrichAndSequence {
 
                 // Add to sequence
                 HttpResponse seqRes = addToSequence(
-                    req.sequenceId, contact.Email, enrichData.linkedin_url, data, overrides, req.apiKey
+                    req.sequenceId, req.email, enrichData.linkedin_url, data, overrides, req.amplemarketApiKey
                 );
 
-                // Parse sequence response
-                SequenceResponse seqResponse = (SequenceResponse)JSON.deserialize(seqRes.getBody(), SequenceResponse.class);
-                
-                // Only create task if lead was successfully added to sequence
-                if (seqResponse.total_added_to_sequence == 1) {
-                    // Create Task (WhoId for Contact)
-                    Task t = new Task(
-                        Subject = 'Added to Amplemarket sequence ' + req.sequenceId,
-                        WhoId = contact.Id,
-                        Status = 'Completed',
-                        Description = 'Enriched & Sequenced a lead on Amplemarket with the following info:' +
-                            '\nfirst_name: ' + enrichData.first_name +
-                            '\nlast_name: ' + enrichData.last_name +
-                            '\ntitle: ' + enrichData.title +
-                            '\ncompany_name: ' + companyName +
-                            '\nlinkedin_url: ' + enrichData.linkedin_url
-                    );
-                    insert t;
+                try {
+                    // Parse sequence response
+                    SequenceResponseWrapper seqResponse = (SequenceResponseWrapper)JSON.deserialize(seqRes.getBody(), SequenceResponseWrapper.class);
                     
-                    response.success = true;
-                    response.message = 'Successfully enriched and added to sequence.';
-                } else {
+                    // Handle null values safely
+                    Integer totalAdded = seqResponse.total_added_to_sequence != null ? seqResponse.total_added_to_sequence : 0;
+                    if (totalAdded == 1) {
+                        response.success = true;
+                        response.message = 'Successfully enriched and added to sequence.';
+                    } else {
+                        response.success = false;
+                        response.message = 'Lead was not added to sequence. Enrichment succeeded but sequencing failed.';
+                    }
+                } catch (Exception e) {
                     response.success = false;
-                    response.message = 'Lead was not added to sequence. Enrichment succeeded but sequencing failed.';
+                    response.message = 'Error parsing sequence response: ' + e.getMessage() + '\nResponse body: ' + seqRes.getBody();
                 }
             } catch (Exception e) {
                 response.success = false;
