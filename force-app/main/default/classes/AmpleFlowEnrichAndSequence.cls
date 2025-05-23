@@ -2,6 +2,14 @@ public class AmpleFlowEnrichAndSequence {
     // Custom exception for this class
     public class AmpleFlowException extends Exception {}
 
+    // Experience class (moved outside EnrichData)
+    public class Experience {
+        public String company_name;
+        public String title;
+        public String start_date;
+        public String end_date;
+    }
+
     // DTO for Flow input
     public class AmpRequest {
         @InvocableVariable(required=true)
@@ -35,12 +43,6 @@ public class AmpleFlowEnrichAndSequence {
         public String linkedin_url;
         public String title;
         public List<Experience> experiences;
-        public class Experience {
-            public String company_name;
-            public String title;
-            public String start_date;
-            public String end_date;
-        }
     }
 
     @InvocableMethod(label='Amplemarket: Enrich & Add to Sequence')
