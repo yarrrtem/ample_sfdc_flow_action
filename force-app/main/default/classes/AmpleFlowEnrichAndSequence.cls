@@ -95,7 +95,7 @@ public class AmpleFlowEnrichAndSequence {
                     Subject = 'Added to Amplemarket sequence ' + req.sequenceId,
                     WhoId = contact.Id,
                     Status = 'Completed',
-                    Description = 'Enrich status: Success | Sequence status: ' + String.valueOf(seqRes.getStatusCode()) +
+                    Description = 'Enriched & Sequenced a lead on Amplemarket with the following info:' +
                         '\nfirst_name: ' + enrichData.first_name +
                         '\nlast_name: ' + enrichData.last_name +
                         '\ntitle: ' + enrichData.title +
